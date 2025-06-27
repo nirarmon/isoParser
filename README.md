@@ -29,9 +29,11 @@ Field 111 (Transaction Description): PP
 ```
 {
   "message_type": "preauth",
+  "transaction_code": "0100",
   "amount": "000000010000",
   "card_reference_id": "1234567890123456",
   "currency": "840",
+  "currency_iso3": "USD",
   "transaction_description": "PP"
 }
 ```
@@ -78,6 +80,40 @@ Field 111 (Transaction Description): PP
 - `test_iso8583_ws_integration.py` - Integration tests for the WebSocket server
 - `requirements.txt` - Python dependencies
 - `input.md` - i2c ISO 8583 field specification
+
+## Supported Currency Codes
+
+The following ISO 4217 numeric currency codes are mapped to their alpha-3 codes and names:
+
+| Numeric Code | Alpha-3 Code | Currency Name       |
+|:------------:|:------------:|:-------------------|
+| 840          | USD          | US Dollar          |
+| 978          | EUR          | Euro               |
+| 392          | JPY          | Japanese Yen       |
+| 826          | GBP          | British Pound      |
+| 124          | CAD          | Canadian Dollar    |
+| 036          | AUD          | Australian Dollar  |
+| 756          | CHF          | Swiss Franc        |
+| 156          | CNY          | Chinese Yuan       |
+| 643          | RUB          | Russian Ruble      |
+| 999          | XXX          | Unknown/Test       |
+
+If a currency code is not listed, the numeric code will be returned as the alpha-3 code.
+
+## Supported Transaction Codes (MTI)
+
+The following Message Type Identifiers (MTI) are mapped to transaction types:
+
+| MTI  | Transaction Type   |
+|:----:|:------------------|
+| 0100 | preauth            |
+| 0200 | financial          |
+| 0400 | reversal           |
+| 0500 | reconciliation     |
+| 0420 | settlement         |
+| 9999 | unknown            |
+
+If an MTI is not listed, the transaction type will be returned as 'unknown'.
 
 ## Notes
 - The parser is robust to short/invalid messages and extra fields.

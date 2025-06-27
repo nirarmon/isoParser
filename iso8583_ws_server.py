@@ -21,6 +21,21 @@ MTI_MAP = {
     # Add more as needed
 }
 
+# ISO 4217 numeric to alpha code mapping (partial, extend as needed)
+ISO4217_NUM_TO_ALPHA = {
+    '840': 'USD',
+    '978': 'EUR',
+    '392': 'JPY',
+    '826': 'GBP',
+    '124': 'CAD',
+    '036': 'AUD',
+    '756': 'CHF',
+    '156': 'CNY',
+    '643': 'RUB',
+    '999': 'XXX',  # Unknown/test
+    # Add more as needed
+}
+
 def parse_bitmap(bitmap_hex: str) -> list:
     bits = bin(int(bitmap_hex, 16))[2:].zfill(64)
     present_fields = [i+1 for i, b in enumerate(bits) if b == '1']
@@ -30,13 +45,16 @@ def parse_iso8583_message(msg: str) -> dict:
     try:
         mti = msg[:4]
         message_type = MTI_MAP.get(mti, 'unknown')
+        transaction_code = mti  # Add raw MTI as transaction code
         bitmap_hex = msg[4:20]
         if not bitmap_hex or len(bitmap_hex) < 16:
             return {
                 'message_type': message_type,
+                'transaction_code': transaction_code,
                 'amount': None,
                 'card_reference_id': None,
                 'currency': None,
+                'currency_iso3': None,
                 'transaction_description': None,
             }
         present_fields = parse_bitmap(bitmap_hex)
@@ -47,9 +65,6 @@ def parse_iso8583_message(msg: str) -> dict:
             idx += 16
             secondary_fields = parse_bitmap(secondary_bitmap_hex)
             present_fields = present_fields[1:] + [f+64 for f in secondary_fields]
-        else:
-            # No secondary bitmap, just use present_fields as is
-            pass
         data = {}
         # Field length definitions (for skipping unknown fields)
         FIELD_LENGTHS = {
@@ -80,10 +95,13 @@ def parse_iso8583_message(msg: str) -> dict:
                     data['amount'] = None
             elif field == 49:
                 if idx + 3 <= len(msg):
-                    data['currency'] = msg[idx:idx+3]
+                    currency = msg[idx:idx+3]
+                    data['currency'] = currency
+                    data['currency_iso3'] = ISO4217_NUM_TO_ALPHA.get(currency, currency)
                     idx += 3
                 else:
                     data['currency'] = None
+                    data['currency_iso3'] = None
             elif field == 111:
                 if idx + 2 <= len(msg):
                     data['transaction_description'] = msg[idx:idx+2]
@@ -103,17 +121,21 @@ def parse_iso8583_message(msg: str) -> dict:
                     pass
         return {
             'message_type': message_type,
+            'transaction_code': transaction_code,
             'amount': data.get('amount'),
             'card_reference_id': data.get('card_reference_id'),
             'currency': data.get('currency'),
+            'currency_iso3': data.get('currency_iso3'),
             'transaction_description': data.get('transaction_description'),
         }
     except Exception:
         return {
             'message_type': 'unknown',
+            'transaction_code': None,
             'amount': None,
             'card_reference_id': None,
             'currency': None,
+            'currency_iso3': None,
             'transaction_description': None,
         }
 

@@ -223,3 +223,37 @@ def test_invalid_message():
     assert result['currency'] is None
     assert result['card_reference_id'] is None
     assert result['transaction_description'] is None
+
+def test_currency_iso3_usd():
+    msg = build_msg('0200', '1234567890123456', '000000010000', '840', 'PP')
+    result = parse_iso8583_message(msg)
+    assert result['currency'] == '840'
+    assert result['currency_iso3'] == 'USD'
+
+def test_currency_iso3_eur():
+    msg = build_msg('0200', '1234567890123456', '000000010000', '978', 'PP')
+    result = parse_iso8583_message(msg)
+    assert result['currency'] == '978'
+    assert result['currency_iso3'] == 'EUR'
+
+def test_currency_iso3_jpy():
+    msg = build_msg('0200', '1234567890123456', '000000010000', '392', 'PP')
+    result = parse_iso8583_message(msg)
+    assert result['currency'] == '392'
+    assert result['currency_iso3'] == 'JPY'
+
+def test_currency_iso3_unknown():
+    msg = build_msg('0200', '1234567890123456', '000000010000', '999', 'PP')
+    result = parse_iso8583_message(msg)
+    assert result['currency'] == '999'
+    assert result['currency_iso3'] == 'XXX'
+
+def test_transaction_code_mti():
+    msg = build_msg('0100', '1234567890123456', '000000010000', '840', 'PP')
+    result = parse_iso8583_message(msg)
+    assert result['transaction_code'] == '0100'
+    assert result['message_type'] == 'preauth'
+    msg2 = build_msg('0200', '1234567890123456', '000000010000', '840', 'PP')
+    result2 = parse_iso8583_message(msg2)
+    assert result2['transaction_code'] == '0200'
+    assert result2['message_type'] == 'financial'
