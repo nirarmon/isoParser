@@ -69,11 +69,25 @@ var mtiDescriptions = map[string]string{
 	"0810": "Network Management Response",
 }
 
+// currencyISO3 maps numeric ISO 4217 currency codes to their alphabetic
+// counterparts. Only a very small subset is required for the examples and tests
+// contained in this repository.
+var currencyISO3 = map[string]string{
+	"840": "USD",
+	"978": "EUR",
+	"826": "GBP",
+}
+
+// ISOMessage represents a subset of the parsed ISO8583 fields. In addition to
+// the original fields this structure now exposes the numeric transaction code
+// (MTI), as well as the alphabetic ISO‑3 currency code.
 type ISOMessage struct {
+	TransactionCode string `json:"transaction_code"`
 	MessageType     string `json:"message_type"`
 	Amount          string `json:"amount"`
 	CardReferenceID string `json:"card_reference_id"`
 	Currency        string `json:"currency"`
+	CurrencyISO3    string `json:"currency_iso3"`
 	Description     string `json:"description"`
 }
 
@@ -163,6 +177,7 @@ func parseISO8583(hexMsg string) (ISOMessage, error) {
 		fields[num] = val
 		pos += read
 	}
+	result.TransactionCode = mti
 	result.MessageType = mtiDescriptions[mti]
 	if v, ok := fields[4]; ok {
 		result.Amount = v
@@ -172,6 +187,9 @@ func parseISO8583(hexMsg string) (ISOMessage, error) {
 	}
 	if v, ok := fields[49]; ok {
 		result.Currency = v
+		if alpha, ok := currencyISO3[v]; ok {
+			result.CurrencyISO3 = alpha
+		}
 	}
 	if v, ok := fields[43]; ok {
 		result.Description = strings.TrimSpace(v)
