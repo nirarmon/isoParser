@@ -102,16 +102,36 @@ If a currency code is not listed, the numeric code will be returned as the alpha
 
 ## Supported Transaction Codes (MTI)
 
-The following Message Type Identifiers (MTI) are mapped to transaction types:
+The following Message Type Identifiers (MTI) are mapped to transaction types (from ISO 8583):
 
-| MTI  | Transaction Type   |
-|:----:|:------------------|
-| 0100 | preauth            |
-| 0200 | financial          |
-| 0400 | reversal           |
-| 0500 | reconciliation     |
-| 0420 | settlement         |
-| 9999 | unknown            |
+| MTI  | Transaction Type Description                |
+|:----:|:-------------------------------------------|
+| 0100 | Authorization request                      |
+| 0110 | Authorization response                     |
+| 0120 | Authorization advice                       |
+| 0130 | Authorization advice response              |
+| 0200 | Financial transaction request              |
+| 0210 | Financial transaction response             |
+| 0220 | Financial advice                           |
+| 0230 | Financial advice response                  |
+| 0300 | File actions request                       |
+| 0310 | File actions response                      |
+| 0320 | File actions advice                        |
+| 0330 | File actions advice response               |
+| 0400 | Reversal request                           |
+| 0410 | Reversal response                          |
+| 0420 | Reversal advice                            |
+| 0430 | Reversal advice response                   |
+| 0500 | Reconciliation request                     |
+| 0510 | Reconciliation response                    |
+| 0520 | Reconciliation advice                      |
+| 0530 | Reconciliation advice response             |
+| 0600 | Administrative request                     |
+| 0610 | Administrative response                    |
+| 0620 | Administrative advice                      |
+| 0630 | Administrative advice response             |
+| 0800 | Network management request                 |
+| 0810 | Network management response                |
 
 If an MTI is not listed, the transaction type will be returned as 'unknown'.
 

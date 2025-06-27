@@ -50,7 +50,6 @@ def build_msg_fields(mti, fields, sec_fields, field_values):
 # Card Reference ID: '1234567890123456', Amount: '000000010000', Currency: '840', Transaction Description: 'PP'
 def test_parse_iso8583_preauth():
     mti = '0100'
-    # Bit 1 set (secondary bitmap present), bits 2, 4, 49 in primary, 47 in secondary (field 111)
     primary_bitmap = make_bitmap([1, 2, 4, 49])
     secondary_bitmap = make_secondary_bitmap([111])
     field2 = '16' + '1234567890123456'
@@ -59,7 +58,7 @@ def test_parse_iso8583_preauth():
     field111 = 'PP'
     msg = mti + primary_bitmap + secondary_bitmap + field2 + field4 + field49 + field111
     result = parse_iso8583_message(msg)
-    assert result['message_type'] == 'preauth'
+    assert result['message_type'] == 'authorization_request'
     assert result['amount'] == '000000010000'
     assert result['card_reference_id'] == '1234567890123456'
     assert result['currency'] == '840'
@@ -77,7 +76,7 @@ def test_parse_iso8583_settlement():
     field111 = 'BB'
     msg = mti + primary_bitmap + secondary_bitmap + field2 + field4 + field49 + field111
     result = parse_iso8583_message(msg)
-    assert result['message_type'] == 'settlement'
+    assert result['message_type'] == 'reversal_advice'
     assert result['amount'] == '000000005000'
     assert result['card_reference_id'] == '6543210987654321'
     assert result['currency'] == '978'
@@ -210,7 +209,7 @@ def test_all_fields_max_length():
 def test_extra_field_ignored():
     msg = build_msg_fields('0200', [1, 2, 3, 4, 49], [111], {2: '9999888877776666', 3: '123456', 4: '000000123456', 49: '826', 111: 'OG'})
     result = parse_iso8583_message(msg)
-    assert result['message_type'] == 'financial'
+    assert result['message_type'] == 'financial_transaction_request'
     assert result['card_reference_id'] == '9999888877776666'
     assert result['amount'] == '000000123456'
     assert result['currency'] == '826'
@@ -252,8 +251,43 @@ def test_transaction_code_mti():
     msg = build_msg('0100', '1234567890123456', '000000010000', '840', 'PP')
     result = parse_iso8583_message(msg)
     assert result['transaction_code'] == '0100'
-    assert result['message_type'] == 'preauth'
+    assert result['message_type'] == 'authorization_request'
     msg2 = build_msg('0200', '1234567890123456', '000000010000', '840', 'PP')
     result2 = parse_iso8583_message(msg2)
     assert result2['transaction_code'] == '0200'
-    assert result2['message_type'] == 'financial'
+    assert result2['message_type'] == 'financial_transaction_request'
+
+def test_mti_map_all_standard_types():
+    mti_types = [
+        ('0100', 'authorization_request'),
+        ('0110', 'authorization_response'),
+        ('0120', 'authorization_advice'),
+        ('0130', 'authorization_advice_response'),
+        ('0200', 'financial_transaction_request'),
+        ('0210', 'financial_transaction_response'),
+        ('0220', 'financial_advice'),
+        ('0230', 'financial_advice_response'),
+        ('0300', 'file_actions_request'),
+        ('0310', 'file_actions_response'),
+        ('0320', 'file_actions_advice'),
+        ('0330', 'file_actions_advice_response'),
+        ('0400', 'reversal_request'),
+        ('0410', 'reversal_response'),
+        ('0420', 'reversal_advice'),
+        ('0430', 'reversal_advice_response'),
+        ('0500', 'reconciliation_request'),
+        ('0510', 'reconciliation_response'),
+        ('0520', 'reconciliation_advice'),
+        ('0530', 'reconciliation_advice_response'),
+        ('0600', 'administrative_request'),
+        ('0610', 'administrative_response'),
+        ('0620', 'administrative_advice'),
+        ('0630', 'administrative_advice_response'),
+        ('0800', 'network_management_request'),
+        ('0810', 'network_management_response'),
+    ]
+    for mti, expected_type in mti_types:
+        msg = build_msg(mti, '1234567890123456', '000000010000', '840', 'PP')
+        result = parse_iso8583_message(msg)
+        assert result['transaction_code'] == mti
+        assert result['message_type'] == expected_type

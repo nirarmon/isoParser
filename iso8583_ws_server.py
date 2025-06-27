@@ -11,13 +11,34 @@ FIELD_MAP = {
     111: 'transaction_description', # Transaction Description (in subfield 15)
 }
 
-# MTI to message type mapping (simplified, extend as needed)
+# MTI to message type mapping (full ISO 8583 transaction types)
 MTI_MAP = {
-    '0100': 'preauth',
-    '0200': 'financial',
-    '0400': 'reversal',
-    '0500': 'reconciliation',
-    '0420': 'settlement',
+    '0100': 'authorization_request',
+    '0110': 'authorization_response',
+    '0120': 'authorization_advice',
+    '0130': 'authorization_advice_response',
+    '0200': 'financial_transaction_request',
+    '0210': 'financial_transaction_response',
+    '0220': 'financial_advice',
+    '0230': 'financial_advice_response',
+    '0300': 'file_actions_request',
+    '0310': 'file_actions_response',
+    '0320': 'file_actions_advice',
+    '0330': 'file_actions_advice_response',
+    '0400': 'reversal_request',
+    '0410': 'reversal_response',
+    '0420': 'reversal_advice',
+    '0430': 'reversal_advice_response',
+    '0500': 'reconciliation_request',
+    '0510': 'reconciliation_response',
+    '0520': 'reconciliation_advice',
+    '0530': 'reconciliation_advice_response',
+    '0600': 'administrative_request',
+    '0610': 'administrative_response',
+    '0620': 'administrative_advice',
+    '0630': 'administrative_advice_response',
+    '0800': 'network_management_request',
+    '0810': 'network_management_response',
     # Add more as needed
 }
 
