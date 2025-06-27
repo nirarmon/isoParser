@@ -15,6 +15,9 @@ func TestParseISO8583(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parseISO8583 returned error: %v", err)
 	}
+	if msg.TransactionCode != "0430" {
+		t.Errorf("unexpected transaction code: %q", msg.TransactionCode)
+	}
 	if msg.MessageType != "Reversal Advice Response" {
 		t.Errorf("unexpected message type: %q", msg.MessageType)
 	}
@@ -26,6 +29,9 @@ func TestParseISO8583(t *testing.T) {
 	}
 	if msg.Currency != "840" {
 		t.Errorf("unexpected currency: %q", msg.Currency)
+	}
+	if msg.CurrencyISO3 != "USD" {
+		t.Errorf("unexpected currency ISO3: %q", msg.CurrencyISO3)
 	}
 	if msg.Description != "ACQUIRER NAME CITY NAME CAUSA" {
 		t.Errorf("unexpected description: %q", msg.Description)
