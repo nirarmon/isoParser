@@ -26,44 +26,96 @@ def parse_bitmap(bitmap_hex: str) -> list:
     present_fields = [i+1 for i, b in enumerate(bits) if b == '1']
     return present_fields
 
-def parse_iso8583_message(msg: str) -> Dict[str, Any]:
-    mti = msg[:4]
-    message_type = MTI_MAP.get(mti, 'unknown')
-    bitmap_hex = msg[4:20]
-    present_fields = parse_bitmap(bitmap_hex)
-    idx = 20
-    # Check for secondary bitmap (bit 1 set)
-    if present_fields and present_fields[0] == 1:
-        secondary_bitmap_hex = msg[idx:idx+16]
-        idx += 16
-        secondary_fields = parse_bitmap(secondary_bitmap_hex)
-        present_fields = present_fields[1:] + [f+64 for f in secondary_fields]
-    data = {}
-    # Parse fields in order of appearance in the message
-    for field in present_fields:
-        if field == 2:
-            length = int(msg[idx:idx+2])
-            idx += 2
-            data['card_reference_id'] = msg[idx:idx+length]
-            idx += length
-        elif field == 4:
-            data['amount'] = msg[idx:idx+12]
-            idx += 12
-        elif field == 49:
-            data['currency'] = msg[idx:idx+3]
-            idx += 3
-        elif field == 111:
-            data['transaction_description'] = msg[idx:idx+2]
-            idx += 2
+def parse_iso8583_message(msg: str) -> dict:
+    try:
+        mti = msg[:4]
+        message_type = MTI_MAP.get(mti, 'unknown')
+        bitmap_hex = msg[4:20]
+        if not bitmap_hex or len(bitmap_hex) < 16:
+            return {
+                'message_type': message_type,
+                'amount': None,
+                'card_reference_id': None,
+                'currency': None,
+                'transaction_description': None,
+            }
+        present_fields = parse_bitmap(bitmap_hex)
+        idx = 20
+        # Check for secondary bitmap (bit 1 set)
+        if present_fields and present_fields[0] == 1:
+            secondary_bitmap_hex = msg[idx:idx+16]
+            idx += 16
+            secondary_fields = parse_bitmap(secondary_bitmap_hex)
+            present_fields = present_fields[1:] + [f+64 for f in secondary_fields]
         else:
+            # No secondary bitmap, just use present_fields as is
             pass
-    return {
-        'message_type': message_type,
-        'amount': data.get('amount'),
-        'card_reference_id': data.get('card_reference_id'),
-        'currency': data.get('currency'),
-        'transaction_description': data.get('transaction_description'),
-    }
+        data = {}
+        # Field length definitions (for skipping unknown fields)
+        FIELD_LENGTHS = {
+            2: 'var',   # variable, 2-digit length prefix
+            3: 6,       # Processing code (example, 6 digits)
+            4: 12,      # Amount
+            49: 3,      # Currency
+            111: 2,     # Transaction description
+        }
+        for field in present_fields:
+            if field == 2:
+                print(f"DEBUG: idx={idx}, msg[idx:]=<{msg[idx:]}> (len={len(msg)})")
+                if idx + 2 <= len(msg):
+                    length = int(msg[idx:idx+2])
+                    idx += 2
+                    if idx + length <= len(msg):
+                        data['card_reference_id'] = msg[idx:idx+length]
+                        idx += length
+                    else:
+                        data['card_reference_id'] = None
+                else:
+                    data['card_reference_id'] = None
+            elif field == 4:
+                if idx + 12 <= len(msg):
+                    data['amount'] = msg[idx:idx+12]
+                    idx += 12
+                else:
+                    data['amount'] = None
+            elif field == 49:
+                if idx + 3 <= len(msg):
+                    data['currency'] = msg[idx:idx+3]
+                    idx += 3
+                else:
+                    data['currency'] = None
+            elif field == 111:
+                if idx + 2 <= len(msg):
+                    data['transaction_description'] = msg[idx:idx+2]
+                    idx += 2
+                else:
+                    data['transaction_description'] = None
+            else:
+                flen = FIELD_LENGTHS.get(field, None)
+                if flen == 'var':
+                    if idx + 2 <= len(msg):
+                        vlen = int(msg[idx:idx+2])
+                        idx += 2 + vlen
+                elif isinstance(flen, int):
+                    if idx + flen <= len(msg):
+                        idx += flen
+                else:
+                    pass
+        return {
+            'message_type': message_type,
+            'amount': data.get('amount'),
+            'card_reference_id': data.get('card_reference_id'),
+            'currency': data.get('currency'),
+            'transaction_description': data.get('transaction_description'),
+        }
+    except Exception:
+        return {
+            'message_type': 'unknown',
+            'amount': None,
+            'card_reference_id': None,
+            'currency': None,
+            'transaction_description': None,
+        }
 
 async def handler(websocket):
     async for message in websocket:
